@@ -4,23 +4,19 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import random
 from torchvision import datasets, transforms
 
-
 class Net(nn.Module):
-    def __init__(self):
+    def __init__(self, hidden_size=100):
         super(Net, self).__init__()
-        #self.conv1 = nn.Conv2d(1, 20, 5, 1)
-        #self.conv2 = nn.Conv2d(20, 50, 5, 1)
-        self.fc1 = nn.Linear(28*28, 10)
-        #self.fc2 = nn.Linear(300, 300)
-        #self.fc3 = nn.Linear(300, 10)
+        self.fc1 = nn.Linear(28*28, hidden_size, bias=False)
+        self.fc2 = nn.Linear(hidden_size, 10, bias=False)
 
     def forward(self, x):
         x = x.view(-1, 28*28)
         x = F.relu(self.fc1(x))
-        #x = F.relu(self.fc2(x))
-        #x = self.fc3(x)
+        x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
 
@@ -101,25 +97,32 @@ def main():
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
 
-    model = Net().to(device)
-    
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    network_sizes = [5, 100, 200]
+    last_model = Net(network_sizes[0]).to(device)
+    for netid, size in enumerate(network_sizes):
+        model = last_model
+        if netid > 0:
+            last_size = network_sizes[netid - 1]
+            model = Net(network_sizes[0]).to(device)
+            
+            last_params = list(last_model.parameters())
+            params = list(model.parameters())
 
-    for epoch in range(1, args.epochs + 1):
-        train(args, model, device, train_loader, optimizer, epoch)
-        #print("Training Accuracy")
-        #test(args, model, device, train_loader)
-        print("Test Accuracy")
+            params[0][:last_size, :].data.copy_(last_params[0].data)
+            params[0][last_size:, :].data.copy_( torch.randn_like(params[0][last_size:, :]) / 100 )
+
+            params[1][:, :last_size].data.copy_(last_params[1].data)
+            params[1][:, last_size:].data.copy_( torch.randn_like(params[1][:, last_size:]) / 100 )
+            
+            print("Test after transformation")
+            test(args, model, device, test_loader)
+        optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+        train(args, model, device, train_loader, optimizer, 1)
         test(args, model, device, test_loader)
+        last_model = model
 
-    params = list(model.parameters())
-    print( len(params) )
-    for i in range(len(params)):
-        print(params[i].size())
-    print(params[1])
-
-    if (args.save_model):
-        torch.save(model.state_dict(),"mnist_cnn.pt")
+    #print (params2[1])
+    
         
 if __name__ == '__main__':
     main()
