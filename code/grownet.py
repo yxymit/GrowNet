@@ -7,6 +7,9 @@ import torch.optim as optim
 import random
 from torchvision import datasets, transforms
 
+net_layout 
+
+
 class Net(nn.Module):
     def __init__(self, hidden_size=100):
         super(Net, self).__init__()
@@ -18,6 +21,7 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
+
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -123,8 +127,6 @@ def main():
             train(args, model, device, train_loader, optimizer, epoch)
             test(args, model, device, test_loader)
         last_model = model
-
-    #print (params2[1])
     
         
 if __name__ == '__main__':
