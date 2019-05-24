@@ -11,17 +11,20 @@ net_layout
 
 
 class Net(nn.Module):
-    def __init__(self, hidden_size=100):
+    def __init__(self, hidden_size=5):
         super(Net, self).__init__()
         self.fc1 = nn.Linear(28*28, hidden_size, bias=False)
-        self.fc2 = nn.Linear(hidden_size, 10, bias=False)
+        self.fc2 = nn.Linear(hidden_size, hidden_size, bias=False)
+        self.fc3 = nn.Linear(hidden_size, hidden_size, bias=False)
+        self.fc4 = nn.Linear(hidden_size, 10, bias=False)
 
     def forward(self, x):
         x = x.view(-1, 28*28)
         x = F.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)
         return F.log_softmax(x, dim=1)
-
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -103,7 +106,7 @@ def main():
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
 
-    network_sizes = [100, 200, 300]
+    network_sizes = [5, 105, 205]
     last_model = Net(network_sizes[0]).to(device)
     for netid, size in enumerate(network_sizes):
         model = last_model
@@ -122,10 +125,10 @@ def main():
             
             print("Test after transformation")
             test(args, model, device, test_loader)
-        for epoch in range(5):
+        for epoch in range(10):
             optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
             train(args, model, device, train_loader, optimizer, epoch)
-            test(args, model, device, test_loader)
+        test(args, model, device, test_loader)
         last_model = model
     
         
